@@ -1,0 +1,93 @@
+package it.eng.sensors.home.gateway;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import it.eng.pathway.fake.model.ActiveLifestylePASession;
+import it.eng.pathway.fake.model.DailyActivity;
+import it.eng.sensors.home.gateway.exception.UnauthorizedException;
+
+public interface CloudClient {
+	/**
+	 * Used for the "Hello world" example of the Cloud API
+	 * @param token
+	 * @return Something to display
+	 * @throws UnauthorizedException
+	 */
+	public String testApi(String token) throws UnauthorizedException;
+	/**
+	 * Convert the sessions gathered frome the cloud into the PATHway model of PhisicalActivitySession
+	 * @param token
+	 * @param date - the day used to filter the result from the server
+	 * @return A list of ActiveLifestylePASession already converted in the actual datamodel
+	 * @throws UnauthorizedException
+	 */
+	public List<ActiveLifestylePASession> getSessions(String token, Date date) throws UnauthorizedException;
+	/**
+	 * Invokes the Cloud API for getting a summary of the available data between the <code>startDate</code> and the <code>endDate</code>
+	 * @param token
+	 * @param startDate
+	 * @param endDate
+	 * @return
+	 * @throws UnauthorizedException
+	 */
+	public ActiveLifestylePASession getSummary(String token, Date startDate, Date endDate) throws UnauthorizedException;
+	/**
+	 * Requests the Authorization Code to the identity provider
+	 *  
+	 * @param clientId - Application ID provided from the cloud service. Created after the registration of the application into the identity provider server.
+	 * @param scope - the permissions needed
+	 * @param redirectUri - the uri where the code will be posted and unique for the applcation
+	 * @return
+	 * @throws MalformedURLException
+	 * @throws IOException
+	 */
+	public String getAuthCode(String clientId, String scope, String redirectUri, String state) throws MalformedURLException, IOException;
+	/**
+	 * 
+	 * @param clientId - Application ID provided from the cloud service. Created after the registration of the application into the identity provider server.
+	 * @param redirectUri - the uri unique for the application shared during the registration phase into the identity provider
+	 * @param clientSecret - the secret key provided from the Identity Provider to the user whom registered the application
+	 * @param code - the coded posted for the specific user, and needed for generating the authorization token
+	 * @return a map contaning the token and optionally the refresh token. The keys are available using the methods <code>getAccessTokenKey()</code> and <code>getRefreshTokenKey()</code>
+	 * @throws MalformedURLException
+	 * @throws IOException
+	 */
+	public Map<String, String> getAccessToken(String clientId, String redirectUri, String clientSecret, String code) throws MalformedURLException, IOException;
+	/**
+	 * 
+	 * @param clientId - Application ID provided from the cloud service. Created after the registration of the application into the identity provider server.
+	 * @param redirectUri - the uri unique for the application shared during the registration phase into the identity provider
+	 * @param clientSecret - the secret key provided from the Identity Provider to the user whom registered the application
+	 * @param refreshToken - the token created from the identity provider to access the user data in any time. that is optional and depends on the user choices
+	 * @return a map contaning the token and optionally the refresh token. The keys are available using the methods <code>getAccessTokenKey()</code> and <code>getRefreshTokenKey()</code>
+	 * @throws IOException
+	 */
+	public Map<String, String> refreshToken(String clientId, String redirectUri, String clientSecret, String refreshToken) throws IOException;
+	/**
+	 * 
+	 * @return the key used for read the attribute in the map
+	 */
+	public String getAccessTokenKey();
+	/**
+	 * 
+	 * @return the key used for read the attribute in the map
+	 */
+	public String getRefreshTokenKey();
+	
+	
+	/**
+	 * Invokes the Cloud API for getting the DailyActivites attributes for each day in the interval.
+	 * @param token
+	 * @param startDate
+	 * @param endDate
+	 * @return
+	 * @throws UnauthorizedException
+	 */
+	public List<DailyActivity> getDailyActivities(String token, Date startDate, Date endDate) throws UnauthorizedException;
+
+
+}

@@ -1,0 +1,85 @@
+/**
+ * 
+ */
+package it.eng.sensors.home.gateway;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import it.eng.pathway.fake.model.ActiveLifestylePASession;
+import it.eng.sensors.home.gateway.exception.UnauthorizedException;
+
+/**
+ * @author fabiomelillo
+ *
+ */
+public class SensorsHomeGatewayImpl implements SensorsHomeGateway {
+
+	private Provider provider;
+	private CloudClient client;
+	private String clientId;
+	private String clientSecret;
+	private String scope;
+	private String redirectUri;
+	
+	
+	public SensorsHomeGatewayImpl(Provider provider, String clientId, String clientSecret, String scope, String redirectUri) {
+		super();
+		this.provider = provider;
+		this.clientId=clientId;
+		this.clientSecret=clientSecret;
+		this.scope=scope;
+		this.redirectUri=redirectUri;
+		switch (this.provider) {
+		case MICROSOFT:
+			client=new CloudClientMS();
+			break;
+		default:
+			break;
+		}
+	}
+	
+	@Override
+	public String testApi(String token) throws UnauthorizedException {
+		return client.testApi(token);
+	}
+	
+	public List<ActiveLifestylePASession> getSessions(String token, Date date) {
+		return null;
+	}
+
+	public ActiveLifestylePASession getSummary(String token, Date startDate, Date endDate) {
+		return null;
+	}
+
+	@Override
+	public String getAuthCode() throws MalformedURLException, IOException  {
+		return client.getAuthCode(clientId, scope, redirectUri);
+	}
+
+	@Override
+	public Map<String, String> getAccessToken(String code) throws MalformedURLException, IOException {
+		return client.getAccessToken(clientId, redirectUri, clientSecret,code);
+	}
+
+	@Override
+	public Map<String, String> refreshToken(String refreshToken) throws IOException {
+		return client.refreshToken(clientId,redirectUri,clientSecret,refreshToken);
+	}
+
+	@Override
+	public String getAccesTokenKey() {
+		return client.getAccessTokenKey();
+	}
+
+	@Override
+	public String getRefreshTokenKey() {
+		return client.getRefreshTokenKey();
+	}
+
+	
+	
+}

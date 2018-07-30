@@ -1,0 +1,250 @@
+package it.eng.sensors.home.gateway;
+
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import it.eng.pathway.fake.model.ActiveLifestylePASession;
+import it.eng.sensors.home.gateway.exception.UnauthorizedException;
+import it.eng.utility.CloudLogger;
+import ms.client.ApiException;
+import ms.client.api.ProfileApi;
+import ms.client.model.UserProfile;
+
+public class CloudClientMS implements CloudClient {
+	
+	private static final String OAUTH_URL = "https://login.live.com/oauth20_authorize.srf";
+	private static final String TOKEN_URL = "https://login.live.com/oauth20_token.srf";
+	
+	private static final String ACCESS_TOKEN_KEY = "access_token";
+	private static final String REFRESH_TOKEN_KEY = "refresh_token";
+	
+	public String testApi(String token) throws UnauthorizedException {
+		CloudLogger.printMethod();
+//		CloudLogger.logger.fine("Token; "+token);
+		try {
+			ProfileApi profileApi = new ProfileApi();
+			profileApi.getApiClient().addDefaultHeader("Authorization", "bearer " + token);
+			UserProfile profile = profileApi.profileGet();
+			return profile.toString();
+		} catch (ApiException e) {
+			e.printStackTrace();
+			CloudLogger.logger.fine(e.getResponseBody());
+//			if (e.getCode() == 401){
+				UnauthorizedException ex=new UnauthorizedException(e.getCode(), e.getResponseBody());
+				throw ex;
+//			}
+		}
+	}
+
+	public List<ActiveLifestylePASession> getSessions(String token, Date date) throws UnauthorizedException {
+		CloudLogger.printMethod();
+		try {
+			ProfileApi profileApi = new ProfileApi();
+			profileApi.getApiClient().addDefaultHeader("Authorization", "bearer " + token);
+			UserProfile profile = profileApi.profileGet();
+//			return profile.toString();
+		} catch (ApiException e) {
+			e.printStackTrace();
+			CloudLogger.logger.fine(e.getResponseBody());
+				UnauthorizedException ex=new UnauthorizedException(e.getCode(), e.getResponseBody());
+				throw ex;
+		}
+		return null;
+	}
+
+	public ActiveLifestylePASession getSummary(String token, Date startDate, Date endDate) throws UnauthorizedException {
+		CloudLogger.printMethod();
+		try {
+			ProfileApi profileApi = new ProfileApi();
+			profileApi.getApiClient().addDefaultHeader("Authorization", "bearer " + token);
+			UserProfile profile = profileApi.profileGet();
+//			return profile.toString();
+		} catch (ApiException e) {
+			e.printStackTrace();
+			CloudLogger.logger.fine(e.getResponseBody());
+				UnauthorizedException ex=new UnauthorizedException(e.getCode(), e.getResponseBody());
+				throw ex;
+		}
+		return null;
+	}
+
+	public String getAuthCode(String clientId, String scope, String redirectUri) throws IOException {
+		String req = createOauthRequest(clientId,scope,redirectUri);
+		CloudLogger.logger.fine(req);
+		URL url = new URL(req);
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		conn.setRequestMethod("GET");
+		conn.setRequestProperty("Accept", "application/json");
+		CloudLogger.logger.fine(String.valueOf(conn.getResponseCode()));
+//		CloudLogger.logger.fine(conn.getResponseMessage());
+		if (conn.getResponseCode() != 200) {
+			throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
+		}
+		BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
+		String page = "";
+		String output;
+//		CloudLogger.logger.fine("Output from Server .... \n");
+		while ((output = br.readLine()) != null) {
+//			CloudLogger.logger.fine(output);
+			page += output;
+		}
+		conn.disconnect();
+		return page;
+	}
+
+	public Map<String, String> getAccessToken(String clientId, String redirectUri, String clientSecret,String code) throws IOException {
+		String token = "";
+		String refresh = "";
+			String req = createTokenRequest();
+			String params = createTokenRequestParameter(code,clientId,redirectUri,clientSecret);
+			URL url = new URL(req);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("POST");
+			conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+			conn.setDoOutput(true);
+			DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
+			wr.writeBytes(params);
+			wr.flush();
+			wr.close();
+
+			int responseCode = conn.getResponseCode();
+			CloudLogger.logger.fine("\nSending 'POST' request to URL : " + url);
+			CloudLogger.logger.fine("Post parameters : " + params);
+			CloudLogger.logger.fine("Response Code : " + responseCode);
+//			CloudLogger.logger.fine(String.valueOf(conn.getContent()));
+
+			if (responseCode == 400) {
+				return null;
+			}
+
+//			CloudLogger.logger.fine(conn.getResponseMessage());
+
+			BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+			String inputLine;
+			StringBuffer response = new StringBuffer();
+
+			while ((inputLine = in.readLine()) != null) {
+				response.append(inputLine);
+			}
+			in.close();
+
+			// print result
+			int indexToken = response.indexOf("access_token");
+			int indexRefreshToken = response.indexOf("refresh_token");
+			int indexUserId = response.indexOf("user_id");
+		
+			if (indexRefreshToken>0){
+				token = response.substring(indexToken + 15, indexRefreshToken - 3);
+				refresh = response.substring(indexRefreshToken + 16, indexUserId - 3);
+			}
+			else {
+				token = response.substring(indexToken + 15, indexUserId - 3);
+			}
+//			CloudLogger.logger.fine(response.toString());
+//			CloudLogger.logger.fine("TOKEN: " + token);
+//			CloudLogger.logger.fine("REFRESH: " + refresh);
+			
+			
+			HashMap<String, String> tokens=new HashMap<String, String>();
+			tokens.put(ACCESS_TOKEN_KEY, token);
+			if (refresh!=null)
+				tokens.put(REFRESH_TOKEN_KEY, refresh);
+			
+			return tokens;
+	}
+
+	
+
+	public Map<String, String> refreshToken(String clientId, String redirectUri, String clientSecret, String refreshToken) throws IOException {
+		CloudLogger.printMethod();
+		String req = createTokenRequest();
+		String params = refreshTokenRequestParameter(clientId,redirectUri,clientSecret, refreshToken);
+		URL url = new URL(req);
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		conn.setRequestMethod("POST");
+		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+		conn.setDoOutput(true);
+		DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
+		wr.writeBytes(params);
+		wr.flush();
+		wr.close();
+
+		int responseCode = conn.getResponseCode();
+		CloudLogger.logger.fine("\nSending 'POST' request to URL : " + url);
+		CloudLogger.logger.fine("Post parameters : " + params);
+		CloudLogger.logger.fine("Response Code : " + responseCode);
+		CloudLogger.logger.fine(String.valueOf(conn.getContent()));
+		
+		CloudLogger.logger.fine(conn.getResponseMessage());
+
+		BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+		String inputLine;
+		StringBuffer response = new StringBuffer();
+
+		while ((inputLine = in.readLine()) != null) {
+			response.append(inputLine);
+		}
+		in.close();
+
+		// print result
+		int indexToken = response.indexOf("access_token");
+		int indexRefreshToken = response.indexOf("refresh_token");
+		int indexUserId = response.indexOf("user_id");
+		String token = response.substring(indexToken + 15, indexRefreshToken - 3);
+		String refresh = response.substring(indexRefreshToken + 16, indexUserId - 3);
+
+//		CloudLogger.logger.fine(response.toString());
+//		CloudLogger.logger.fine("TOKEN: " + token);
+//		CloudLogger.logger.fine("REFRESH: " + refresh);
+		
+		HashMap<String, String> tokens=new HashMap<String, String>();
+		tokens.put(ACCESS_TOKEN_KEY, token);
+		if (refresh!=null)
+			tokens.put(REFRESH_TOKEN_KEY, refresh);
+		return tokens;
+	}
+	
+
+	public String getAccessTokenKey() {
+		return ACCESS_TOKEN_KEY;
+	}
+
+	public String getRefreshTokenKey() {
+		return REFRESH_TOKEN_KEY;
+	}
+	
+	private String createOauthRequest(String clientId, String scope, String redirectUri) {
+		String url = OAUTH_URL + "?client_id=" + clientId + "&scope=" + scope + "&response_type=code&redirect_uri="
+				+ redirectUri;
+		return url;
+	}
+	
+	private String createTokenRequest() {
+		String url = TOKEN_URL;
+		return url;
+	}
+	
+	private String createTokenRequestParameter(String code, String clientId, String redirectUri, String clientSecret) {
+		String params = "client_id=" + clientId + "&redirect_uri=" + redirectUri + "&client_secret=" + clientSecret
+				+ "&code=" + code + "&grant_type=authorization_code";
+		return params;
+	}
+
+	private String refreshTokenRequestParameter(String clientId, String redirectUri, String clientSecret, String refreshToken) {
+		String params = "client_id=" + clientId + "&redirect_uri=" + redirectUri + "&client_secret=" + clientSecret
+				+ "&refresh_token=" + refreshToken + "&grant_type=refresh_token";
+		return params;
+	}
+
+
+}

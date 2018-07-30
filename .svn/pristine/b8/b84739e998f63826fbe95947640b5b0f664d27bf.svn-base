@@ -1,0 +1,14 @@
+package it.eng.remote.sensor.gateway;
+
+import java.util.Date;
+import java.util.List;
+
+import it.eng.pathway.fake.model.ActiveLifestylePASession;
+
+public interface CloudClient {
+	
+	public abstract List<ActiveLifestylePASession> getSessions(String token, Date date);
+
+	public abstract ActiveLifestylePASession getSummary(String token, Date startDate, Date endDate);
+
+}

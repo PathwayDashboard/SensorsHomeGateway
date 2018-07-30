@@ -1,0 +1,22 @@
+package it.eng.remote.sensor.gateway;
+
+import java.util.Date;
+import java.util.List;
+
+import it.eng.pathway.fake.model.ActiveLifestylePASession;
+
+public class CloudClientMS implements CloudClient {
+
+	@Override
+	public List<ActiveLifestylePASession> getSessions(String token, Date date) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ActiveLifestylePASession getSummary(String token, Date startDate, Date endDate) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

@@ -1,0 +1,47 @@
+/**
+ * 
+ */
+package it.eng.remote.sensor.gateway;
+
+import java.util.Date;
+import java.util.List;
+
+import it.eng.pathway.fake.model.ActiveLifestylePASession;
+
+/**
+ * @author fabiomelillo
+ *
+ */
+public class RemoteSensorGateway {
+
+	enum Provider{
+		MICROSOFT,
+		FITBIT
+	}
+	
+	private Provider provider;
+	private CloudClient client;
+	private String token;
+
+	public RemoteSensorGateway(Provider provider, String token) {
+		super();
+		this.provider = provider;
+		switch (provider) {
+		case MICROSOFT:
+			client=new CloudClientMS();
+			break;
+		default:
+			break;
+		}
+	}
+	
+	public List<ActiveLifestylePASession> getSessions(Date date) {
+		return null;
+	}
+
+	public ActiveLifestylePASession getSummary(Date startDate, Date endDate) {
+		return null;
+	}
+	
+	
+}
